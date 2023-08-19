@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OrchardCore.Theme.Targets" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.ContentManagement" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.DisplayManagement" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.ResourceManagement" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Contents" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Navigation" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Menu" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Layers" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Title" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Alias" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Html" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Autoroute" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Search.Abstractions" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.ContentFields" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Markdown" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Rules" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Taxonomies" Version="1.6.0" />
+    <PackageReference Include="OrchardCore.Lists" Version="1.6.0" />
+  </ItemGroup>
+
+</Project>
