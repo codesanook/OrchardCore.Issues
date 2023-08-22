@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using OrchardCore.Autoroute.Models;
 using OrchardCore.ContentManagement;
 using OrchardCore.ContentManagement.Metadata;
+using OrchardCore.ContentManagement.Metadata.Models;
 using OrchardCore.Data;
 using OrchardCore.Taxonomies.Fields;
 using YesSql.Indexes;
@@ -27,15 +28,19 @@ namespace OrchardIssue1.Theme.Indexes
         private readonly IServiceProvider _serviceProvider;
         private readonly HashSet<string> _ignoredTypes = new HashSet<string>();
         private IContentDefinitionManager _contentDefinitionManager;
+        private IReadOnlyCollection<ContentPartFieldDefinition> _fieldDefinitions;
 
-        public ContentItemByTermIndexProvider(IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
+        public ContentItemByTermIndexProvider(IServiceProvider serviceProvider) => _serviceProvider = serviceProvider;
 
         public override void Describe(DescribeContext<ContentItem> context)
         {
             context.For<ContentItemByTermIndex>()
+                .When(contentItem =>
+                {
+                    // Search for Taxonomy fields
+                    _fieldDefinitions = GetTaxonomyFieldsDefinitions(contentItem);
+                    return _fieldDefinitions.Any();
+                })
                 .Map(contentItem =>
                 {
                     // Remove index records of soft deleted items.
@@ -50,36 +55,11 @@ namespace OrchardIssue1.Theme.Indexes
                         return null;
                     }
 
-                    // Lazy initialization because of ISession cyclic dependency
-                    _contentDefinitionManager ??= _serviceProvider.GetRequiredService<IContentDefinitionManager>();
-
-                    // Search for Taxonomy fields
-                    var contentTypeDefinition = _contentDefinitionManager.GetTypeDefinition(contentItem.ContentType);
-
-                    // This can occur when content items become orphaned, particularly layer widgets when a layer is removed, before its widgets have been unpublished.
-                    if (contentTypeDefinition == null)
-                    {
-                        _ignoredTypes.Add(contentItem.ContentType);
-                        return null;
-                    }
-
-                    var fieldDefinitions = contentTypeDefinition
-                        .Parts.SelectMany(x => x.PartDefinition.Fields.Where(f => f.FieldDefinition.Name == nameof(TaxonomyField)))
-                        .ToArray();
-
-                    // This type doesn't have any TaxonomyField, ignore it
-                    if (fieldDefinitions.Length == 0)
-                    {
-                        _ignoredTypes.Add(contentItem.ContentType);
-                        return null;
-                    }
-
                     var results = new List<ContentItemByTermIndex>();
                     var autoRoutePart = contentItem.As<AutoroutePart>();
 
-
                     // Get all field values
-                    foreach (var fieldDefinition in fieldDefinitions)
+                    foreach (var fieldDefinition in _fieldDefinitions)
                     {
                         var jPart = (JObject)contentItem.Content[fieldDefinition.PartDefinition.Name];
 
@@ -96,7 +76,6 @@ namespace OrchardIssue1.Theme.Indexes
                         }
 
                         var field = jField.ToObject<TaxonomyField>();
-
                         foreach (var termContentItemId in field.TermContentItemIds)
                         {
                             results.Add(new ContentItemByTermIndex
@@ -113,6 +92,35 @@ namespace OrchardIssue1.Theme.Indexes
 
                     return results;
                 });
+        }
+
+        private IReadOnlyCollection<ContentPartFieldDefinition> GetTaxonomyFieldsDefinitions(ContentItem contentItem)
+        {
+            // Lazy initialization because of ISession cyclic dependency
+            _contentDefinitionManager ??= _serviceProvider.GetRequiredService<IContentDefinitionManager>();
+
+            // Search for Taxonomy fields
+            var contentTypeDefinition = _contentDefinitionManager.GetTypeDefinition(contentItem.ContentType);
+
+            // This can occur when content items become orphaned, particularly layer widgets when a layer is removed, before its widgets have been unpublished.
+            if (contentTypeDefinition == null)
+            {
+                _ignoredTypes.Add(contentItem.ContentType);
+                return Array.Empty<ContentPartFieldDefinition>();
+            }
+
+            var fieldDefinitions = contentTypeDefinition
+                .Parts.SelectMany(x => x.PartDefinition.Fields.Where(f => f.FieldDefinition.Name == nameof(TaxonomyField)))
+                .ToArray();
+
+            // This type doesn't have any TaxonomyField, ignore it
+            if (fieldDefinitions.Length == 0)
+            {
+                _ignoredTypes.Add(contentItem.ContentType);
+                return Array.Empty<ContentPartFieldDefinition>();
+            }
+
+            return fieldDefinitions;
         }
     }
 }
